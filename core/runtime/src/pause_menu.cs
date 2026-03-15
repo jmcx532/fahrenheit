@@ -298,7 +298,7 @@ public unsafe class FhPauseMenuModule : FhModule {
                 case 0:
                     _TkMn2SetMainFrameRatioDiff(-16);
                     menu->state = 1;
-                    break;
+                    return;
 
                 case 1:
                     if (*TkMenuMainOpenWaitTimer < 0x1000) return;
@@ -392,7 +392,7 @@ public unsafe class FhPauseMenuModule : FhModule {
                         return;
                     }
 
-                    break;
+                    return;
 
             case 6:
                 *selected_player_idx = _TkMenuGetCurrentPlayer();
