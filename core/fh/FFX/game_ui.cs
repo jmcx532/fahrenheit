@@ -56,3 +56,25 @@ public unsafe struct TkMenu {
     public byte __0x1B;
     public int  state;
 }
+
+public static class TkMenuId {
+    public const int TK_MENU_MAIN          = 0x1;
+    public const int TK_MENU_ABILITY       = 0x2;
+    public const int TK_MENU_ITEM          = 0x3;
+    public const int TK_MENU_EQUIP         = 0x4;
+    public const int TK_MENU_STATUS        = 0x6;
+    public const int TK_MENU_SUMMON        = 0x7;
+    public const int TK_MENU_KAIZOU        = 0x9;
+    public const int TK_MENU_CONFIG        = 0xA;
+    public const int TK_MENU_HELP          = 0xB;
+    public const int TK_MENU_WSHOP         = 0xD;
+    public const int TK_MENU_NAME          = 0xE;
+    public const int TK_MENU_SAVE          = 0xF;
+    public const int TK_MENU_LOAD          = 0x10;
+    public const int TK_MENU_BTL_END       = 0x11;
+    public const int TK_MENU_ABILITY_MAP_2 = 0x13;
+    public const int TK_MENU_HDD           = 0x14;
+    public const int TK_MENU_LIMIT         = 0x15;
+    public const int TK_MENU_TUTO          = 0x16;
+    public const int TK_MENU_WORLD_MAP     = 0x17;
+}

@@ -20,6 +20,8 @@ public unsafe sealed class FhModConfigModule : FhModule {
         return true;
     }
 
+    // Global Settings GUI
+
     internal void open() {
         is_open = true;
         //TODO: Prevent the game from playing the Zanarkand scene while the config menu is open
@@ -145,4 +147,7 @@ public unsafe sealed class FhModConfigModule : FhModule {
 
         return false;
     }
+
+    // Local Settings GUI
+
 }

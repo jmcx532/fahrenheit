@@ -67,6 +67,14 @@ public unsafe static class Globals {
             public static float* tornado         => FhUtil.ptr_at<float>(0x886B6C);
         }
     }
+
+    public static class TkMenus {
+        public static ReadOnlySpan<TkMenu> menus  => new(FhUtil.ptr_at<TkMenu>(0x1440848), 24);
+
+        public static byte** active_help_message   => (byte**)FhUtil.ptr_at<nint>(0x1441bc0);
+        public static byte** previous_help_message => (byte**)FhUtil.ptr_at<nint>(0x1441bc4);
+    }
+
     public static FhInput Input => FhApi.Input;
 
     public static SaveData* save_data => FhUtil.ptr_at<SaveData>(0xD2CA90);
