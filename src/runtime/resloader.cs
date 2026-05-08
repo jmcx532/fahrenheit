@@ -8,7 +8,7 @@ namespace Fahrenheit.Runtime;
 ///     In your module, call <see cref="FhApi.Resources"/>.
 /// </summary>
 [FhLoad(FhGameId.FFX | FhGameId.FFX2 | FhGameId.FFX2LM)]
-[SupportedOSPlatform("windows")] // To satisfy CA1416 warning about invoking D3D/DXGI API which TerraFX annotates as supported only on Windows.
+[SupportedOSPlatform("windows6.1")] // To satisfy CA1416 warning about invoking D3D/DXGI API which TerraFX annotates as supported only on Windows.
 public unsafe sealed class FhResourceLoaderModule : FhModule, IFhResourceLoader, IFhPlatformUser {
     private ID3D11Device* _p_device; // https://learn.microsoft.com/en-us/windows/win32/api/d3d11/nn-d3d11-id3d11device
 
@@ -145,8 +145,17 @@ public unsafe sealed class FhResourceLoaderModule : FhModule, IFhResourceLoader,
                 return false;
             }
 
+            /* [fkelava 08/05/26 23:41]
+             * https://learn.microsoft.com/en-us/windows/win32/api/d3d11/nf-d3d11-id3d11device-createshaderresourceview
+             * CreateShaderResourceView is meant to return HRESULT. However, the only public overload CsWin32 provides
+             * is one which returns `void` and throws if the HRESULT indicates error, necessitating this ugly workaround.
+             */
+
             ID3D11ShaderResourceView* srv;
-            if (_p_device->CreateShaderResourceView(ptr_texture->base_PTexture2DD3D11.ptr_d3d_resource, null, &srv) != S.S_OK) {
+            try {
+                _p_device->CreateShaderResourceView(ptr_texture->base_PTexture2DD3D11.ptr_d3d_resource, null, &srv);
+            }
+            catch {
                 _logger.Error($"{tex_path} - SRV instantiation failed");
 
                 texture.unlock();
