@@ -1,7 +1,0 @@
---config
-generate-file-scoped-namespaces
-generate-macro-bindings
-log-potential-typedef-remappings
-multi-file
---headerFile
-header.txt

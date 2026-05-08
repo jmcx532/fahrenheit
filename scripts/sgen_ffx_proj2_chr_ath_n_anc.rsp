@@ -1,0 +1,17 @@
+@sgen_settings.rsp
+@sgen_remap.rsp
+--headerFile
+sgen_ffx_proj2_chr_ath_n.txt
+--file
+../env/ffx_ps2/ffx/proj2/chr/ath/n/anc_n010.ath
+../env/ffx_ps2/ffx/proj2/chr/ath/n/anc_n034.ath
+../env/ffx_ps2/ffx/proj2/chr/ath/n/anc_n041.ath
+../env/ffx_ps2/ffx/proj2/chr/ath/n/anc_n051.ath
+../env/ffx_ps2/ffx/proj2/chr/ath/n/anc_n135.ath
+../env/ffx_ps2/ffx/proj2/chr/ath/n/anc_n225.ath
+--methodClassName
+NpcAnimationCycle
+--namespace
+Fahrenheit.FFX.Ids
+--output
+../src/core/ffx/ids

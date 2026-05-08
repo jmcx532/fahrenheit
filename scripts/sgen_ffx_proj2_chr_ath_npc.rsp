@@ -1,0 +1,12 @@
+@sgen_settings.rsp
+@sgen_remap.rsp
+--headerFile
+sgen_ffx_proj2_chr_ath_npc.txt
+--file
+../env/ffx_ps2/ffx/proj2/chr/ath/npc.ath
+--methodClassName
+NpcId
+--namespace
+Fahrenheit.FFX.Ids
+--output
+../src/core/ffx/ids

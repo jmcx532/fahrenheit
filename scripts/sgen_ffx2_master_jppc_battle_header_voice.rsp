@@ -1,0 +1,17 @@
+@sgen_settings.rsp
+@sgen_remap.rsp
+--headerFile
+sgen_ffx2_master_jppc_battle_header_voice.txt
+--file
+../env/ffx_ps2/ffx2/master/jppc/battle/header/voice/btl_ability.ath
+../env/ffx_ps2/ffx2/master/jppc/battle/header/voice/btl_ffx.ath
+../env/ffx_ps2/ffx2/master/jppc/battle/header/voice/btl_follow.ath
+../env/ffx_ps2/ffx2/master/jppc/battle/header/voice/btl_iop.ath
+../env/ffx_ps2/ffx2/master/jppc/battle/header/voice/btl_start.ath
+../env/ffx_ps2/ffx2/master/jppc/battle/header/voice/btl_winlost.ath
+--methodClassName
+BattleVoiceId
+--namespace
+Fahrenheit.FFX2.Ids
+--output
+../src/core/ffx2/ids
