@@ -3,29 +3,29 @@
 namespace Fahrenheit;
 
 /// <summary>
-///     Provides runtime binding to a <see cref="FhModule"/> of type <typeparamref name="TTarget"/>.
+///     Provides runtime binding to a <see cref="FhModule"/> of type <typeparamref name="T"/>.
 ///     You may then access the module or its <see cref="FhModuleContext"/>.
 /// </summary>
-public class FhModuleHandle<TTarget>(FhModule owner) where TTarget : FhModule {
+public sealed class FhModuleHandle<T>(FhModule owner) where T : FhModule {
     private readonly FhModule         _owner = owner;
     private          FhModuleContext? _match;
 
     /// <summary>
-    ///     Queries the <see cref="FhModController"/> for a module of type <typeparamref name="TTarget"/>,
+    ///     Searches for a module of type <typeparamref name="T"/>,
     ///     caching the match if found, and returns its <see cref="FhModuleContext"/>.
     /// </summary>
     public bool try_get_context([NotNullWhen(true)] out FhModuleContext? target_context) {
-        FhInternal.Log.Info($"{_owner.ModuleType} acquiring handle to {typeof(TTarget).FullName}");
-        return (target_context = (_match ??= FhApi.Mods.get_module<TTarget>())) != null;
+        FhInternal.Log.Info($"{_owner.ModuleType} -> {typeof(T).FullName}");
+        return (target_context = (_match ??= FhApi.Mods.get_module<T>())) != null;
     }
 
     /// <summary>
-    ///     Queries the <see cref="FhModController"/> for a module of type <typeparamref name="TTarget"/>,
-    ///     caching the match if found, and returns its <see cref="FhModuleContext"/>.
+    ///     Searches for a module of type <typeparamref name="T"/>,
+    ///     caching the match if found, and returns it.
     /// </summary>
-    public bool try_get_module([NotNullWhen(true)] out TTarget? target) {
+    public bool try_get_module([NotNullWhen(true)] out T? target) {
         target = default;
-        return try_get_context(out FhModuleContext? target_context) && (target = target_context.Module as TTarget) != null;
+        return try_get_context(out FhModuleContext? target_context) && (target = target_context.Module as T) != null;
     }
 }
 
@@ -51,162 +51,293 @@ internal sealed class FhRuntimeHandle<T> {
 }
 
 /// <summary>
-///     Used by <see cref="FhMethodHandle{T}"/> to target functions which are
-///     analogous but located at different offsets in FF X and FF X-2.
+///     A helper to obtain the absolute address of a given function.
 /// </summary>
-public sealed record FhMethodLocation(
-    nint OffsetX,
-    nint OffsetX2);
+public readonly ref struct FhMethodLocation {
 
-/// <summary>
-///     Represents a method whose signature is equal to <typeparamref name="T"/>.
-///     You may then invoke or hook the function.
-/// </summary>
-public unsafe class FhMethodHandle<T> where T : Delegate {
-    private readonly nint fn_addr;
-
-    public FhModule handle_owner { get; init;        }
-    public T        orig_fptr    { get; private set; } // Do not store the value of this field.
-    public T        hook_fptr    { get; init;        }
+    private readonly nint _ptr_target;
 
     /// <summary>
-    ///     This constructor is used for functions which are analogous between FF X and X-2.
-    ///     The handle implicitly targets the currently running game and selects the appropriate
-    ///     offset from <paramref name="location"/>.
+    ///     Use this constructor for functions which are analogous between FF X and X-2.
+    ///     The handle implicitly targets the currently running game and selects the appropriate offset.
     /// </summary>
-    public FhMethodHandle(FhModule         owner,
-                          FhMethodLocation location,
-                          T                hook)
-    {
+    public FhMethodLocation(nint offset_x, nint offset_x2) {
         bool is_ffx = FhGlobal.game_id == FhGameId.FFX;
 
-        string module_name = is_ffx ? "FFX.exe"        : "FFX-2.exe";
-        nint   offset      = is_ffx ? location.OffsetX : location.OffsetX2;
+        string module_name = is_ffx ? "FFX.exe" : "FFX-2.exe";
+        nint   offset      = is_ffx ? offset_x  : offset_x2;
 
-        fn_addr      = calc_fnaddr(module_name, offset);
-        handle_owner = owner;
-        orig_fptr    = Marshal.GetDelegateForFunctionPointer<T>(FhInternal.MethodAddressMap.get(fn_addr));
-        hook_fptr    = hook;
+        _ptr_target = calc_addr(module_name, offset);
     }
 
     /// <summary>
-    ///     This constructor is used for exported functions in external modules, such as D3D11.dll.
+    ///     Use this constructor for exported functions in external modules, such as D3D11.dll.
     /// </summary>
-    public FhMethodHandle(FhModule owner,
-                          string   module_name,
-                          string   fn_name,
-                          T        hook)
-    {
-        fn_addr      = calc_fnaddr(module_name, fn_name);
-        handle_owner = owner;
-        orig_fptr    = Marshal.GetDelegateForFunctionPointer<T>(FhInternal.MethodAddressMap.get(fn_addr));
-        hook_fptr    = hook;
+    public FhMethodLocation(string module_name, string fn_name) {
+        _ptr_target = calc_addr(module_name, fn_name);
     }
 
     /// <summary>
-    ///     This constructor is used for private/non-exported functions in external modules, such as D3D11.dll,
-    ///     or functions exclusive to either FF X or X-2.
+    ///     Use this constructor for private/non-exported functions in external modules,
+    ///     such as D3D11.dll, or functions exclusive to either FF X or X-2.
     /// </summary>
-    public FhMethodHandle(FhModule owner,
-                          string   module_name,
-                          nint     offset,
-                          T        hook)
-    {
-        fn_addr      = calc_fnaddr(module_name, offset);
-        handle_owner = owner;
-        orig_fptr    = Marshal.GetDelegateForFunctionPointer<T>(FhInternal.MethodAddressMap.get(fn_addr));
-        hook_fptr    = hook;
+    public FhMethodLocation(string module_name, nint offset) {
+        _ptr_target = calc_addr(module_name, offset);
     }
 
     /// <summary>
-    ///     This constructor is used for member functions or vtable entries of objects, such as
-    ///     <see cref="TerraFX.Interop.DirectX.IDXGISwapChain.Present(uint, uint)"/>.
+    ///     Use this constructor for member functions or vtable entries of objects, such as
+    ///     <see cref="IDXGISwapChain.Present(uint, DXGI_PRESENT)"/>.
+    ///     <para/>
+    ///     Unlike other constructors, no validation is performed on the input address.
     /// </summary>
-    public FhMethodHandle(FhModule owner,
-                          nint     abs_fnaddr,
-                          T        hook)
-    {
-        fn_addr      = abs_fnaddr;
-        handle_owner = owner;
-        orig_fptr    = Marshal.GetDelegateForFunctionPointer<T>(fn_addr);
-        hook_fptr    = hook;
+    public FhMethodLocation(nint abs_addr) {
+        _ptr_target = abs_addr;
+    }
+
+    /// <inheritdoc cref="FhMethodLocation(nint)" />
+    unsafe public FhMethodLocation(void* abs_addr) {
+        _ptr_target = (nint)abs_addr;
     }
 
     /// <summary>
     ///     Obtains the absolute address of export <paramref name="fn_name"/>
     ///     in module <paramref name="module_name"/>.
     /// </summary>
-    private nint calc_fnaddr(string module_name, string fn_name) {
-        nint mod_addr = FhPInvoke.GetModuleHandle(module_name);
-        if (mod_addr == 0) throw new Exception($"Module {module_name} not loaded in memory.");
-
-        nint fn_addr = NativeLibrary.GetExport(mod_addr, fn_name);
-        if (fn_addr == 0) throw new Exception($"Method {fn_name} not found in module {module_name}");
-
-        return fn_addr;
+    private static nint calc_addr(string module_name, string fn_name) {
+        nint module_addr = FhPInvoke.GetModuleHandle(module_name);
+        return module_addr != 0 && NativeLibrary.TryGetExport(module_addr, fn_name, out nint fn_addr)
+            ? fn_addr
+            : 0;
     }
 
     /// <summary>
     ///     Obtains the absolute address of the function at <paramref name="offset"/>
     ///     in module <paramref name="module_name"/>.
     /// </summary>
-    private nint calc_fnaddr(string module_name, nint offset) {
-        nint mod_addr = FhPInvoke.GetModuleHandle(module_name);
-        if (mod_addr == 0) throw new Exception($"Module {module_name} not loaded in memory.");
-
-        return mod_addr + offset;
+    private static nint calc_addr(string module_name, nint offset) {
+        nint module_addr = FhPInvoke.GetModuleHandle(module_name);
+        return module_addr != 0
+            ? module_addr + offset
+            : 0;
     }
 
-    /// <summary>
-    ///     Inserts the hook specified at construction time into the hook chain of the targeted method.
-    /// </summary>
-    public bool hook() {
-        nint addr_target   = FhInternal.MethodAddressMap.get(fn_addr);
-        nint addr_hook     = Marshal.GetFunctionPointerForDelegate(hook_fptr);
-        nint addr_original = 0;
-
-        FhInternal.Log.Info($"{hook_fptr.Method.Name}; 0x{addr_target:X8} -> 0x{addr_hook:X8}.");
-
-        FhPInvoke.MH_STATUS rv_create = FhPInvoke.MH_CreateHook(addr_target, addr_hook, &addr_original);
-
-        if (rv_create != FhPInvoke.MH_STATUS.MH_OK) {
-            FhInternal.Log.Error($"MH_CreateHook() failed for {hook_fptr.Method.Name} - {rv_create}");
-            return false;
-        }
-
-        FhPInvoke.MH_STATUS rv_enable = FhPInvoke.MH_EnableHook(addr_target);
-
-        if (rv_enable != FhPInvoke.MH_STATUS.MH_OK) {
-            FhInternal.Log.Error($"MH_EnableHook() failed for {hook_fptr.Method.Name} - {rv_enable}");
-            return false;
-        }
-
-        orig_fptr = Marshal.GetDelegateForFunctionPointer<T>(addr_original);
-        FhInternal.MethodAddressMap.set(fn_addr, addr_original);
-
-        return true;
+    public bool try_resolve(out nint ptr_target) {
+        return (ptr_target = _ptr_target) != 0;
     }
 }
 
 /// <summary>
-///     Tracks the address at which the next hook requested by a <see cref="FhMethodHandle{T}"/>
-///     must be inserted, if multiple hooks are created for the same method.
+///     Represents a method with signature <typeparamref name="T"/>. It may then be invoked or hooked.
 /// </summary>
-internal class FhMethodAddressMap {
-    private readonly Dictionary<nint, nint> _map  = [];
-    private readonly Lock                   _lock = new Lock();
+public ref struct FhMethodHandle<T> where T : Delegate {
 
-    public nint get(nint addr_initial) {
-        lock (_lock) {
-            return _map.TryGetValue(addr_initial, out nint addr_current)
-                ? addr_current
-                : addr_initial;
+    private readonly nint _ptr_target;
+
+    /// <summary>
+    ///     A pointer to the target function. By default, this includes all hooks.
+    ///     <para/>
+    ///     To execute only part of the function's call chain, use <see cref="chain_from(T)"/>.
+    /// </summary>
+    public T? fnptr;
+
+    public FhMethodHandle(FhMethodLocation location) {
+        if (location.try_resolve(out _ptr_target)) {
+            fnptr = FhInternal.MethodTable.get_fnptr<T>(_ptr_target);
         }
     }
 
-    public void set(nint addr_initial, nint addr_new) {
-        lock (_lock) {
-            _map[addr_initial] = addr_new;
+    /// <summary>
+    ///     Retargets the handle to only execute hooks subsequent to the given <paramref name="hook"/>.
+    /// </summary>
+    public FhMethodHandle<T> chain_from(T hook) {
+        fnptr = FhInternal.MethodTable.get_fnptr_chain(hook);
+        return this;
+    }
+
+    /// <summary>
+    ///     Attempts to insert the given <paramref name="hook"/> into the hook chain of the target method.
+    /// </summary>
+    public readonly bool hook(FhModule owner, T hook) {
+        FhHookContext hook_info = new(owner, hook);
+
+        return _ptr_target != 0 && FhInternal.MethodTable.fnptr_chain_add<T>(_ptr_target, hook_info);
+    }
+}
+
+/// <summary>
+///     Pairs a hook with its owner. A stack of these constitutes the complete hook chain of a method.
+/// </summary>
+internal sealed record FhHookContext(
+    FhModule owner,
+    Delegate fnptr);
+
+/// <summary>
+///     Pairs an original game method with its hook stack and auxiliary data required to track hook insertion.
+/// </summary>
+internal sealed class FhMethodContext {
+    internal readonly Stack<FhHookContext> stack   = [];
+    internal          bool                 tainted = false; // The target is locked for further modification.
+}
+
+/// <summary>
+///     Keeps track of the global hook state of functions.
+/// </summary>
+internal sealed class FhMethodTable {
+
+    private readonly Dictionary<nint,     Delegate>        _fnptrs     = []; // Any function -> cached delegate
+    private readonly Dictionary<nint,     FhMethodContext> _methods    = []; // Original     -> all hooks (for debug/keep-alive)
+    private readonly Dictionary<nint,     nint>            _chain_next = []; // Original     -> next chain insertion address
+    private readonly Dictionary<Delegate, nint>            _chain      = []; // Hook         -> next function in chain
+
+    private          int  _lock_commit = 0;
+    private readonly Lock _lock_chains = new Lock();
+
+    /// <summary>
+    ///     Caches a delegate for the function of type <typeparamref name="T"/>
+    ///     at <paramref name="ptr_target"/>, or returns the cached one if it already exists.
+    /// </summary>
+    public T get_fnptr<T>(nint ptr_target) where T : Delegate {
+        if (_fnptrs.TryGetValue(ptr_target, out Delegate? fnptr) && fnptr is T t_fnptr)
+            return t_fnptr;
+
+        t_fnptr = Marshal.GetDelegateForFunctionPointer<T>(ptr_target);
+        _fnptrs[ptr_target] = t_fnptr;
+        return t_fnptr;
+    }
+
+    /* [fkelava 04/06/26 23:28]
+     * Locking should not be required because _chain_next is only manipulated
+     * in a function under lock, and chain_from() which reads _chain is only
+     * valid in contexts where no further hooks may be inserted.
+     */
+
+    /// <summary>
+    ///     For the function at <paramref name="ptr_target"/>, obtains the address at which
+    ///     the next function in the chain must be inserted.
+    /// </summary>
+    public nint get_fnptr_chain_next(nint ptr_target) {
+        return _chain_next.TryGetValue(ptr_target, out nint ptr_next)
+            ? ptr_next
+            : ptr_target;
+    }
+
+    /// <summary>
+    ///     For a given <paramref name="hook"/>, obtains the next link in its hook chain (if any exists).
+    /// </summary>
+    public T? get_fnptr_chain<T>(T hook) where T : Delegate {
+        return _chain.TryGetValue(hook, out nint chain_fnptr)
+            ? get_fnptr<T>(chain_fnptr)
+            : null;
+    }
+
+    /* [fkelava 02/06/26 18:55]
+     * MinHook creates a problem for us here; it will not install two hooks for the same function.
+     *
+     * Given MH_CreateHook(pTarget, pDetour, &ppOriginal), we can sequence `h1`, `h2` and `h3` over a function `f` as such:
+     * > MH_CreateHook(&f,             &h1, &trampoline_f);
+     * > MH_CreateHook(&trampoline_f,  &h2, &trampoline_h1);
+     * > MH_CreateHook(&trampoline_h1, &h3, &trampoline_h2);
+     *
+     * Execution follows insertion order. Earlier hooks can pre-empt later ones.
+     * This goes directly against _our_ LIFO load order where we want subsequent hooks to take priority.
+     *
+     * One way of proceeding would be to unwind and reapply the entire hook chain, but I could not get it to work.
+     * I assume this is due to https://github.com/TsudaKageyu/minhook/issues/78#issuecomment-485101354.
+     *
+     * Thus we impose the following rules:
+     * - Hooks inserted at `init` time are queued for application.
+     * - Hooks are inserted in the proper order after all modules have initialized.
+     * - Hook insertion after `init` is prohibited over a function that already has any.
+     * - Hooks inserted after `init` revert to executing in insertion order.
+     */
+
+    /// <summary>
+    ///     Attempts to insert a given <paramref name="hook"/>
+    ///     into the chain of the function at <paramref name="ptr_target"/>.
+    /// </summary>
+    /// <remarks><see cref="_lock_chains" /> must be held by the caller.</remarks>
+    private bool fnptr_chain_insert<T>(nint ptr_target, T hook) where T : Delegate {
+        // _lock_chains must be held by this method's caller.
+        nint pDetour;
+        nint pTarget    = get_fnptr_chain_next(ptr_target);
+        nint ppOriginal = 0;
+
+        try {
+            pDetour = Marshal.GetFunctionPointerForDelegate(hook);
+        }
+        catch (Exception e) {
+            FhInternal.Log.Error(e.ToString());
+            return false;
+        }
+
+        // SAFETY: &ppOriginal is used as an out parameter and stack allocated
+        unsafe {
+            FhPInvoke.MH_STATUS rv_create = FhPInvoke.MH_CreateHook(pTarget, pDetour, &ppOriginal);
+
+            if (rv_create != FhPInvoke.MH_STATUS.MH_OK) {
+                FhInternal.Log.Error($"MH_CreateHook() failed for {hook.Method.Name} - {rv_create}");
+                return false;
+            }
+        }
+
+        FhPInvoke.MH_STATUS rv_enable = FhPInvoke.MH_EnableHook(pTarget);
+
+        if (rv_enable != FhPInvoke.MH_STATUS.MH_OK) {
+            FhInternal.Log.Error($"MH_EnableHook() failed for {hook.Method.Name} - {rv_enable}");
+            return false;
+        }
+
+        _chain_next[ptr_target] = ppOriginal;
+        _chain     [hook]       = ppOriginal;
+
+        FhInternal.Log.Info($"(0x{ptr_target:X}) -> {hook.Method.Name}");
+        return true;
+    }
+
+    /// <inheritdoc cref="fnptr_chain_insert{T}(nint, T)" />
+    public bool fnptr_chain_add<T>(nint ptr_target, FhHookContext hook) where T : Delegate {
+        lock (_lock_chains) {
+            if (_methods.TryGetValue(ptr_target, out FhMethodContext? target)) {
+                if (target.tainted) {
+                    FhInternal.Log.Error($"(0x{ptr_target:X}) - rejected late insertion of {hook.fnptr.Method.Name}");
+                    return false;
+                }
+
+                target.stack.Push(hook);
+                return Interlocked.CompareExchange(ref _lock_commit, 0, 0) == 0 || fnptr_chain_insert(ptr_target, hook.fnptr);
+            }
+
+            target = new();
+            target.stack.Push(hook);
+
+            _methods[ptr_target] = target;
+            return Interlocked.CompareExchange(ref _lock_commit, 0, 0) == 0 || fnptr_chain_insert(ptr_target, hook.fnptr);
         }
     }
+
+    /// <summary>
+    ///     Applies all hooks registered at the time of calling and
+    ///     prohibits further insertion over functions with any hooks registered.
+    /// </summary>
+    public bool commit() {
+        lock (_lock_chains) {
+            if (Interlocked.CompareExchange(ref _lock_commit, 1, 0) == 1)
+                return true; // reject repeat calls
+
+            foreach ((nint target_ptr, FhMethodContext target) in _methods) {
+                Stack<FhHookContext> target_stack = target.stack;
+
+                foreach (FhHookContext hook in target_stack) {
+                    if (!fnptr_chain_insert(target_ptr, hook.fnptr))
+                        return false;
+                }
+
+                target.tainted = true;
+            }
+        }
+
+        return true;
+    }
+
 }
