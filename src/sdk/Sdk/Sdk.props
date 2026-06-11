@@ -11,20 +11,15 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <RuntimeIdentifier>win-x86</RuntimeIdentifier>
         <EnableDynamicLoading>true</EnableDynamicLoading>
-        <DebugType>embedded</DebugType>
+        <DebugType>portable</DebugType>
     </PropertyGroup>
 
     <!-- FAHRENHEIT PACKAGE IMPORT -->
     <ItemGroup>
-        <PackageReference Include="Fahrenheit" Version="1.0.0-alpha10" >
+        <PackageReference Include="Fahrenheit" Version="1.0.0-alpha11" >
             <Private>false</Private>
             <ExcludeAssets>runtime;native</ExcludeAssets>
         </PackageReference>
-    </ItemGroup>
-
-    <!-- ASSETS: MANIFEST -->
-    <ItemGroup>
-        <None Include="$(AssemblyName).manifest.json" CopyToOutputDirectory="Always" />
     </ItemGroup>
 
     <!-- ASSETS: LOCALIZATION -->
