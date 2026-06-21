@@ -5,13 +5,6 @@
 
 namespace Fahrenheit.Runtime;
 
-/* [fkelava 21/6/25 01:52]
- * Temporary until FhCall is restored to `ffx-v3` RE state.
- */
-
-[UnmanagedFunctionPointer(CallingConvention.StdCall)]
-internal delegate void AtelExecInternal_00871d10();
-
 /// <summary>
 ///     Executes the lifecycle methods of <see cref="FhModule"/>.<br/>
 ///     Also renders the modlist on the main menu.
@@ -21,7 +14,7 @@ internal delegate void AtelExecInternal_00871d10();
 [FhLoad(FhGameId.FFX | FhGameId.FFX2 | FhGameId.FFX2LM)]
 public unsafe class FhCoreModule : FhModule {
 
-    private static readonly FhSettingsCategory _settings = new("fhruntime", [
+    private static readonly FhSettingsCategory _settings = new("fhr", [
         new FhSettingToggle("display_mod_count", true),
     ]);
 
