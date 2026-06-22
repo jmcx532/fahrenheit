@@ -7,5 +7,7 @@ namespace Fahrenheit.FFX;
 
 [StructLayout(LayoutKind.Explicit, Pack = 4, Size = 0x1C)]
 public struct LocalizationManager {
-    [FieldOffset(0x4)] public FhLangId current_language;
+    [FieldOffset(0x00)] public FhLangId lang_video;
+    [FieldOffset(0x04)] public FhLangId lang_text;
+    [FieldOffset(0x08)] public FhLangId lang_voice;
 }

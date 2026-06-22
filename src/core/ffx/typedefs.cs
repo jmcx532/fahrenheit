@@ -1,4 +1,7 @@
-﻿// SPDX-License-Identifier: MIT
+﻿// SPDX-License-Identifier: LGPL-3.0-or-later
+//
+// This file is part of Fahrenheit, © 2023-2026 The Fahrenheit contributors.
+// It is licensed to you under the GNU Lesser General Public License, version 3.0 or later. See COPYING, COPYING.LESSER.
 
 /* [fkelava 7/5/23 15:37]
  * Many primitive IDs and enumerations in this game are given merely as `#define`s. What the true underlying type is is unknown.
@@ -41,3 +44,4 @@ global using T_XMesWinPosId      = System.Byte;   // ids/meswin
 global using T_XDeathAnimationId = System.Byte;   // ids/anim_death
 global using T_XSubModelId       = System.Int32;  // ids/mdl_sub
 global using T_XBlitzPrizeId     = System.UInt16; // ids/blitz_prize
+global using T_XTkMenuItemListId = System.UInt16; // ids/tk_menu_item_list
