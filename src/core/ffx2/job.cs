@@ -79,7 +79,7 @@ public struct StatGrowthGeneric {
 [StructLayout(LayoutKind.Sequential, Size = 0x4)]
 public struct JobAbility{
     public ushort        requirement;
-    public T_X2CommandId ability;
+    public ushort        ability;
 }
 
 
