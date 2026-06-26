@@ -45,12 +45,6 @@ public struct JobAbility {
     public ushort ability;
 }
 
-[StructLayout(LayoutKind.Sequential, Size = 0x4)]
-public struct JobWeaponData {
-    public ushort weapon_model;
-    public ushort weapon_position;
-}
-
 [StructLayout(LayoutKind.Sequential, Size = 0xA)]
 public struct StatChanges {
     public sbyte hp;
@@ -63,6 +57,17 @@ public struct StatChanges {
     public sbyte accuracy;
     public sbyte evasion;
     public sbyte luck;
+}
+
+[StructLayout(LayoutKind.Sequential, Size = 0x4)]
+public struct JobWeaponData {
+    public ushort weapon_model;
+    public ushort weapon_position;
+}
+
+[InlineArray(4)]
+public struct JobWeapons {
+    private JobWeaponData _data;
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 0x38)]
@@ -107,9 +112,9 @@ public struct Job {
 
     [FieldOffset(0x3c)] public InlineArray16<JobAbility>     dressphere_abilities;
 
-    [FieldOffset(0x7c)] public InlineArray4<JobWeaponData>   yuna_weapon_data;
-    [FieldOffset(0x8c)] public InlineArray4<JobWeaponData>   rikku_weapon_data;
-    [FieldOffset(0x9c)] public InlineArray4<JobWeaponData>   paine_weapon_data;
+    [FieldOffset(0x7c)] public JobWeapons   yuna_weapon_data;
+    [FieldOffset(0x8c)] public JobWeapons   rikku_weapon_data;
+    [FieldOffset(0x9c)] public JobWeapons   paine_weapon_data;
 
     [FieldOffset(0xAC)] public JobCreatureData               creature_data;
 
