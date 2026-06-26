@@ -92,10 +92,10 @@ public struct JobWeaponData {
 public struct StatChanges {
     public sbyte hp;
     public sbyte mp;
-    public sbyte str;
-    public sbyte def;
-    public sbyte mag;
-    public sbyte mdef;
+    public sbyte strength;
+    public sbyte defense;
+    public sbyte magic;
+    public sbyte magic_defense;
     public sbyte agility;
     public sbyte accuracy;
     public sbyte evasion;
