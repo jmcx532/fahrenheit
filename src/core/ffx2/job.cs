@@ -3,6 +3,8 @@
 // This file is part of Fahrenheit, © 2023-2026 The Fahrenheit contributors.
 // It is licensed to you under the GNU Lesser General Public License, version 3.0 or later. See COPYING, COPYING.LESSER.
 
+using Fahrenheit.FFX;
+
 namespace Fahrenheit.FFX2;
 
 /// <summary>
@@ -72,50 +74,41 @@ public struct JobWeapons {
 
 [StructLayout(LayoutKind.Explicit, Size = 0x38)]
 public struct JobCreatureData {
+    [FieldOffset(0x00)] public ExcelTextOffset help_text;
+    [FieldOffset(0x04)] public ushort          ability_prerequisite;
+    [FieldOffset(0x06)] public T_X2CommandId   ability;
+    [FieldOffset(0x08)] public ushort          auto_ability_prerequisite;
+    [FieldOffset(0x0A)] public ushort          auto_ability;
 
-    //[FieldOffset(0x00)] public  ExcelTextOffset help_text;
-    [FieldOffset(0x00)] public  ushort          help_text;
-
-    [FieldOffset(0x04)] public  ushort          ability_prerequisite;
-    [FieldOffset(0x06)] public  T_X2CommandId   ability;
-    [FieldOffset(0x08)] public  ushort          auto_ability_prerequisite;
-    [FieldOffset(0x0A)] public  ushort          auto_ability;
-
-    [FieldOffset(0x1C)] public  StatChanges     stat_changes;
+    [FieldOffset(0x1C)] public StatChanges stat_changes;
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 0xE4)]
 public struct Job {
+    [FieldOffset(0x00)] public ExcelTextOffset name_offset;
+    [FieldOffset(0x04)] public ExcelTextOffset help_offset;
+    [FieldOffset(0x08)] public byte            user;
+    [FieldOffset(0x0A)] public byte            dressphere_menu_ordering;
+    [FieldOffset(0x0B)] public byte            icon;
+    [FieldOffset(0x0C)] public T_X2CommandId   berserk_action;
 
-    //[FieldOffset(0x00)] public ExcelTextOffset               name_offset;
-    [FieldOffset(0x00)] public ushort                        name_offset;
+    [FieldOffset(0x0E)] public StatGrowthHp growth_hp;
+    [FieldOffset(0x11)] public StatGrowthMp growth_mp;
 
-    //[FieldOffset(0x04)] public ExcelTextOffset               help_offset;
-    [FieldOffset(0x04)] public ushort                        help_offset;
+    [FieldOffset(0x14)] public StatGrowthGeneric growth_strength;
+    [FieldOffset(0x19)] public StatGrowthGeneric growth_defense;
+    [FieldOffset(0x1E)] public StatGrowthGeneric growth_magic;
+    [FieldOffset(0x23)] public StatGrowthGeneric growth_magic_defense;
+    [FieldOffset(0x28)] public StatGrowthGeneric growth_agility;
+    [FieldOffset(0x2D)] public StatGrowthGeneric growth_evasion;
+    [FieldOffset(0x32)] public StatGrowthGeneric growth_accuracy;
+    [FieldOffset(0x37)] public StatGrowthGeneric growth_luck;
 
-    [FieldOffset(0x08)] public byte                          user;
-    [FieldOffset(0x0A)] public byte                          dressphere_menu_ordering;
-    [FieldOffset(0x0B)] public byte                          icon;
-    [FieldOffset(0x0C)] public T_X2CommandId                 berserk_action;
+    [FieldOffset(0x3c)] public InlineArray16<JobAbility> dressphere_abilities;
 
-    [FieldOffset(0xE)]  public StatGrowthHp                  hp_growth;
-    [FieldOffset(0x11)] public StatGrowthMp                  mp_growth;
+    [FieldOffset(0x7c)] public JobWeapons yuna_weapon_data;
+    [FieldOffset(0x8c)] public JobWeapons rikku_weapon_data;
+    [FieldOffset(0x9c)] public JobWeapons paine_weapon_data;
 
-    [FieldOffset(0x14)] public StatGrowthGeneric             strength_growth;
-    [FieldOffset(0x19)] public StatGrowthGeneric             defense_growth;
-    [FieldOffset(0x1E)] public StatGrowthGeneric             magic_growth;
-    [FieldOffset(0x23)] public StatGrowthGeneric             magic_defense_growth;
-    [FieldOffset(0x28)] public StatGrowthGeneric             agility_growth;
-    [FieldOffset(0x2D)] public StatGrowthGeneric             evasion_growth;
-    [FieldOffset(0x32)] public StatGrowthGeneric             accuracy_growth;
-    [FieldOffset(0x37)] public StatGrowthGeneric             luck_growth;
-
-    [FieldOffset(0x3c)] public InlineArray16<JobAbility>     dressphere_abilities;
-
-    [FieldOffset(0x7c)] public JobWeapons   yuna_weapon_data;
-    [FieldOffset(0x8c)] public JobWeapons   rikku_weapon_data;
-    [FieldOffset(0x9c)] public JobWeapons   paine_weapon_data;
-
-    [FieldOffset(0xAC)] public JobCreatureData               creature_data;
-
+    [FieldOffset(0xAC)] public JobCreatureData creature_data;
 }
