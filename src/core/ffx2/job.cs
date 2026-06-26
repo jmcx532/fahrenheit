@@ -78,29 +78,28 @@ public struct StatGrowthGeneric {
 
 [StructLayout(LayoutKind.Sequential, Size = 0x4)]
 public struct JobAbility{
-    public ushort        requirement;
-    public ushort        ability;
+    public ushort requirement;
+    public ushort ability;
 }
-
 
 [StructLayout(LayoutKind.Sequential, Size = 0x4)]
 public struct JobWeaponData {
-    public  ushort weapon_model;
-    public  ushort weapon_position;
+    public ushort weapon_model;
+    public ushort weapon_position;
 }
 
 [StructLayout(LayoutKind.Sequential, Size = 0xA)]
 public struct StatChanges {
-    public  sbyte hp;
-    public  sbyte mp;
-    public  sbyte str;
-    public  sbyte def;
-    public  sbyte mag;
-    public  sbyte mdef;
-    public  sbyte agility;
-    public  sbyte accuracy;
-    public  sbyte evasion;
-    public  sbyte luck;
+    public sbyte hp;
+    public sbyte mp;
+    public sbyte str;
+    public sbyte def;
+    public sbyte mag;
+    public sbyte mdef;
+    public sbyte agility;
+    public sbyte accuracy;
+    public sbyte evasion;
+    public sbyte luck;
 }
 
 [StructLayout(LayoutKind.Explicit, Size = 0x38)]
