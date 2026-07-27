@@ -10,6 +10,8 @@
  * This file is for calls which are exclusive to FF X-2/LM and not shared with X.
  */
 
+using Fahrenheit.FFX2.Battle;
+
 namespace Fahrenheit.FFX2;
 
 /// <summary>
@@ -18,8 +20,13 @@ namespace Fahrenheit.FFX2;
 public static unsafe partial class FhCall {
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    internal delegate byte* GetLastMissionJobName(byte arg1, byte arg2);
-    internal static FhMethodHandle<GetLastMissionJobName> h_GetLastMissionJobName
+    public delegate Chr* d_MsGetChr(uint chr_id);
+    public static FhMethodHandle<d_MsGetChr> MsGetChr
+        => new(new FhMethodLocation("FFX-2.exe", 0x211450));
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    internal delegate byte* d_GetLastMissionJobName(byte arg1, byte arg2);
+    internal static FhMethodHandle<d_GetLastMissionJobName> GetLastMissionJobName
         => new( new FhMethodLocation("FFX-2.exe", 0x368570) );
 
 }
