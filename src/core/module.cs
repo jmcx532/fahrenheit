@@ -86,10 +86,15 @@ public abstract class FhModule {
         get { return _module_type_name; }
     }
 
-    public FhSettingsCategory? settings {
-        get;
-        protected internal set;
-    }
+    /// <summary>
+    ///     A collection of the mod's global settings; those whose values apply to all saves.
+    /// </summary>
+    public FhSettingsCategory? settings       { get; protected init; }
+
+    /// <summary>
+    ///     A collection of the mod's local settings; those whose values are isolated to the current save.
+    /// </summary>
+    public FhSettingsCategory? settings_local { get; protected init; }
 
     /// <summary>
     ///     Your module should perform all Fahrenheit-related initialization here. When this is called, all mods are loaded, and:
@@ -118,10 +123,8 @@ public abstract class FhModule {
     public virtual void load_local_state(FileStream local_state_file, FhLocalStateInfo local_state_info) { }
 
     /// <summary>
-    ///     Called just before <see cref="TerraFX.Interop.DirectX.IDXGISwapChain.Present"/> time.
+    ///     Called just before <see cref="IDXGISwapChain.Present(IDXGISwapChain*, uint, DXGI_PRESENT)"/> time.
     ///     You may freely invoke ImGui methods here, and <i>only</i> here.
     /// </summary>
     public virtual void render_imgui() { }
-    public virtual void render_game()  { }
-    public virtual void handle_input() { }
 }

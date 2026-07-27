@@ -40,7 +40,7 @@ public unsafe sealed class FhFileLoaderModule : FhModule {
 
     public override bool init(FhModContext mod_context, FileStream global_state_file) {
         construct_index();
-        return FhCall.h_Phyre_PSerialization_PStreamFile_ctor.hook(this, h_fopen);
+        return FhCall.Phyre_PSerialization_PStreamFile_ctor.hook(this, h_fopen);
     }
 
     /* [fkelava 11/02/26 03:39]
@@ -74,11 +74,13 @@ public unsafe sealed class FhFileLoaderModule : FhModule {
         string path_prefixless = path_no_host0[ path_prefix_end .. ];
 
         /* [fkelava 28/01/26 01:05]
-         * A forward slash is universally recognized as a path separator, and the game internally prefers it.
-         * This is a no-op on Unix-like systems where the forward slash is the natural path separator.
+         * The game internally prefers a forward slash as path separator. Additionally, both major OSes support it well.
+         *
+         * https://learn.microsoft.com/en-us/dotnet/standard/base-types/best-practices-strings#recommendations-for-string-usage
+         * > Use the String.ToUpperInvariant method instead of the String.ToLowerInvariant method when you normalize strings for comparison.
          */
 
-        return path_prefixless.Replace(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return path_prefixless.Replace(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).ToUpperInvariant();
     }
 
     /// <summary>
@@ -99,11 +101,11 @@ public unsafe sealed class FhFileLoaderModule : FhModule {
                 string path_rel_normalized = normalize_path(path_rel);
 
                 if (_index.ContainsKey(path_rel_normalized)) {
-                    _logger.Warning($"{path_rel_normalized} is being superseded by mod {mod.Manifest.Name}");
+                    _logger.Warning($"{path_rel} is being superseded by mod {mod.Manifest.Name}");
                 }
 
                 _index[path_rel_normalized] = path_efl_file;
-                _logger.Info($"Mod {mod.Manifest.Name} replaces file {path_rel_normalized}");
+                _logger.Info($"Mod {mod.Manifest.Name} replaces file {path_rel}");
             }
         }
     }
@@ -114,7 +116,7 @@ public unsafe sealed class FhFileLoaderModule : FhModule {
         string path_normalized = normalize_path(path);
 
         if (!_index.TryGetValue(path_normalized, out string? path_modded)) {
-            return FhCall.h_Phyre_PSerialization_PStreamFile_ctor.chain_from(h_fopen).fnptr!(ptr_this, ptr_path, read_only, p3, p4, p5);
+            return FhCall.Phyre_PSerialization_PStreamFile_ctor.chain_from(h_fopen).fnptr!(ptr_this, ptr_path, read_only, p3, p4, p5);
         }
 
         /* [fkelava 01/10/24 16:49]
@@ -149,7 +151,7 @@ public unsafe sealed class FhFileLoaderModule : FhModule {
 
         if (ptr_this->handle_os == HANDLE.INVALID_HANDLE_VALUE) {
             _logger.Error($"File open failed for {path_modded} - bailing out");
-            return FhCall.h_Phyre_PSerialization_PStreamFile_ctor.chain_from(h_fopen).fnptr!(ptr_this, ptr_path, read_only, p3, p4, p5);
+            return FhCall.Phyre_PSerialization_PStreamFile_ctor.chain_from(h_fopen).fnptr!(ptr_this, ptr_path, read_only, p3, p4, p5);
         }
 
         return ptr_this;

@@ -50,9 +50,10 @@ public struct FhMacroDictHeader {
 /// </summary>
 [Flags]
 public enum FhEncodingFlags {
-    IGNORE_DEST_BUFFER = 1,      // `dest` is not iterated through in `encode`/`decode`. Allows size to be calculated with cheap stackalloc buffer.
-    IGNORE_EXPRESSIONS = 1 << 1, // U+007B and U+007D are no longer considered expression opener and closer, respectively.
-    IMPLICIT_END       = 1 << 2, // Do not emit the {END} mark on phrase termination. This output style is not roundtrippable.
+    IGNORE_DEST_BUFFER     = 1,      // `dest` is not iterated through in `encode`/`decode`. Allows size to be calculated with cheap stackalloc buffer.
+    IGNORE_EXPRESSIONS     = 1 << 1, // U+007B and U+007D are no longer considered expression opener and closer, respectively.
+    IMPLICIT_END           = 1 << 2, // Do not emit the {END} mark on phrase termination. This output style is not roundtrippable.
+    IMPLICIT_CJK_EXTENSION = 1 << 3, // In a CJK language, implicitly extend supported characters to their fullwidth forms to allow the display of English text.
 }
 
 /// <summary>
@@ -68,7 +69,7 @@ public static class FhEncoding {
 
     private static ReadOnlySpan<byte> _newline    => "\r\n"u8;
     private static ReadOnlySpan<byte> _op_end     => "{END}"u8;     // 0x00
-    private static ReadOnlySpan<byte> _op_pause   => "{PAUSE}"u8;   // 0x01
+    private static ReadOnlySpan<byte> _op_break   => "{BREAK}"u8;   // 0x01
     private static ReadOnlySpan<byte> _op_newline => "{LF}"u8;      // 0x03
     private static ReadOnlySpan<byte> _op_space   => "{SPACE:"u8;   // 0x07
     private static ReadOnlySpan<byte> _op_time    => "{TIME:"u8;    // 0x09
@@ -79,6 +80,46 @@ public static class FhEncoding {
     private static ReadOnlySpan<byte> _op_macro   => "{MACRO:"u8;   // 0x13-0x22
     private static ReadOnlySpan<byte> _op_key     => "{KEY:"u8;     // 0x23
     private static ReadOnlySpan<byte> _op_unknown => "{UNKNOWN:"u8; // any other
+
+    /// <summary>
+    ///     Returns the UTF-8 plaintext literal corresponding to a given text <paramref name="op_code"/>.
+    /// </summary>
+    private static ReadOnlySpan<byte> _select_op_literal(byte op_code) {
+        return op_code switch {
+            0x00                => _op_end,
+            0x01                => _op_break,
+            0x03                => _op_newline,
+            0x07                => _op_space,
+            0x09                => _op_time,
+            0x0A                => _op_color,
+            0x0B                => _op_btn,
+            0x10                => _op_choice,
+            0x12                => _op_var,
+            >= 0x13 and <= 0x22 => _op_macro,
+            0x23                => _op_key,
+            _                   => _op_unknown,
+        };
+    }
+
+    /// <summary>
+    ///     Returns the op code corresponding to a UTF-8 text op <paramref name="expression"/>.
+    /// </summary>
+    private static byte _select_op_code(ReadOnlySpan<byte> expression) {
+        return 0 switch {
+            _ when expression.IndexOf(_op_end    ) != -1 => 0x00,
+            _ when expression.IndexOf(_op_break  ) != -1 => 0x01,
+            _ when expression.IndexOf(_op_newline) != -1 => 0x03,
+            _ when expression.IndexOf(_op_space  ) != -1 => 0x07,
+            _ when expression.IndexOf(_op_time   ) != -1 => 0x09,
+            _ when expression.IndexOf(_op_color  ) != -1 => 0x0A,
+            _ when expression.IndexOf(_op_btn    ) != -1 => 0x0B,
+            _ when expression.IndexOf(_op_choice ) != -1 => 0x10,
+            _ when expression.IndexOf(_op_var    ) != -1 => 0x12,
+            _ when expression.IndexOf(_op_macro  ) != -1 => byte.CreateChecked(0x13 + _get_op_arg1(expression, _op_macro)),
+            _ when expression.IndexOf(_op_key    ) != -1 => 0x23,
+            _                                            => _get_op_arg1(expression, _op_unknown),
+        };
+    }
 
     /// <summary>
     ///     Gets the first argument of a text <paramref name="op"/> from an UTF-8 plaintext <paramref name="expression"/>.
@@ -113,7 +154,7 @@ public static class FhEncoding {
         ReadOnlySpan<byte> op = _select_op_literal(op_code);
         op.CopyTo(dest);
 
-        return op.Length + Encoding.UTF8.GetBytes($"{op_arg1:X2}}}", dest[op.Length .. ]);
+        return op.Length + Encoding.UTF8.GetBytes($"{op_arg1:X2}}}", dest[ op.Length .. ]);
     }
 
     /// <summary>
@@ -124,15 +165,16 @@ public static class FhEncoding {
         ReadOnlySpan<byte> op = _select_op_literal(op_code);
         op.CopyTo(dest);
 
-        return op.Length + Encoding.UTF8.GetBytes($"{op_arg1:X2}:{op_arg2:X2}}}", dest[op.Length .. ]);
+        return op.Length + Encoding.UTF8.GetBytes($"{op_arg1:X2}:{op_arg2:X2}}}", dest[ op.Length .. ]);
     }
 
     /// <summary>
     ///     Reads the next game encoding character for the specified <paramref name="lang"/> and <paramref name="game"/>
     ///     from <paramref name="src"/> and emits its UTF-8 equivalent, if any, to <paramref name="dest"/>.
     /// </summary>
+    /// <returns>The amount of bytes written to <paramref name="dest"/>.</returns>
     private static int _decode_char(in ReadOnlySpan<byte> src, Span<byte> dest, FhLangId lang, FhGameId game) {
-        return lang is FhLangId.Japanese or FhLangId.Korean or FhLangId.Chinese
+        return _is_cjk(lang)
             ? _decode_cjk(src, dest, lang, game)
             : _decode_we (src, dest, lang, game);
     }
@@ -160,52 +202,45 @@ public static class FhEncoding {
     }
 
     /// <summary>
-    ///     Determines whether the specified UTF-8 <paramref name="code_point"/> should be entirely ignored during encoding.
+    ///     Attempts to extend an eligible character in the Shift-JIS table to its fullwidth form.
+    ///     <para/>
+    ///     Only valid for Chinese, Japanese, and Korean game languages.
     /// </summary>
-    private static bool _should_ignore_code_point(Rune code_point) {
-        return code_point.Value is 0x0D    // U+000D - <Carriage Return> (CR)
-                                or 0x0A    // U+000A - <End of Line> (EOL, LF, NL)
+    /// <returns>Whether the character was rewritten.</returns>
+    private static bool _extend_cjk(ref Rune code_point) {
+        /* [fkelava 14/07/26 17:23]
+         * See issue #200, https://www.unicode.org/charts/PDF/UFF00.pdf, https://www.unicode.org/charts/PDF/U0000.pdf,
+         * https://www.compart.com/en/unicode/decomposition/%3Cwide%3E.
+         *
+         * We only permit extension if the extended character strictly decomposes into its non-extended form.
+         */
+        int unicode_scalar  = code_point.Value;
+        int extended_scalar = unicode_scalar switch {
+            0x0020                  => 0x3000,                  // U+0020 'Space'  -> U+3000 'Ideographic Space'
+            >= 0x0021 and <= 0x007E => unicode_scalar + 0xFEE0, // U+0021 - U+007E -> U+FF01 - U+FF5E
+            _                       => unicode_scalar
+        };
+
+        code_point = new Rune(extended_scalar);
+        return extended_scalar != unicode_scalar;
+    }
+
+    /// <summary>
+    ///     Determines whether the given <paramref name="code_point"/> is invalid and should be ignored.
+    /// </summary>
+    private static bool _is_invalid(Rune code_point) {
+        return code_point.Value is 0x000D  // U+000D - <Carriage Return> (CR)
+                                or 0x000A  // U+000A - <End of Line> (EOL, LF, NL)
                                 or 0xFEFF; // U+FEFF - Zero Width No-Break Space (BOM, ZWNBSP)
     }
 
     /// <summary>
-    ///     Returns the UTF-8 plaintext literal corresponding to a given text <paramref name="op_code"/>.
+    ///     Determines whether the given <paramref name="language"/> is a CJK language.
     /// </summary>
-    private static ReadOnlySpan<byte> _select_op_literal(byte op_code) {
-        return op_code switch {
-            0x00                => _op_end,
-            0x01                => _op_pause,
-            0x03                => _op_newline,
-            0x07                => _op_space,
-            0x09                => _op_time,
-            0x0A                => _op_color,
-            0x0B                => _op_btn,
-            0x10                => _op_choice,
-            0x12                => _op_var,
-            >= 0x13 and <= 0x22 => _op_macro,
-            0x23                => _op_key,
-            _                   => _op_unknown,
-        };
-    }
-
-    /// <summary>
-    ///     Returns the op code corresponding to a UTF-8 text op <paramref name="expression"/>.
-    /// </summary>
-    private static byte _select_op_code(ReadOnlySpan<byte> expression) {
-        return expression switch {
-            _ when expression.IndexOf(_op_end    ) != -1 => 0x00,
-            _ when expression.IndexOf(_op_pause  ) != -1 => 0x01,
-            _ when expression.IndexOf(_op_newline) != -1 => 0x03,
-            _ when expression.IndexOf(_op_space  ) != -1 => 0x07,
-            _ when expression.IndexOf(_op_time   ) != -1 => 0x09,
-            _ when expression.IndexOf(_op_color  ) != -1 => 0x0A,
-            _ when expression.IndexOf(_op_btn    ) != -1 => 0x0B,
-            _ when expression.IndexOf(_op_choice ) != -1 => 0x10,
-            _ when expression.IndexOf(_op_var    ) != -1 => 0x12,
-            _ when expression.IndexOf(_op_macro  ) != -1 => byte.CreateChecked(0x13 + _get_op_arg1(expression, _op_macro)),
-            _ when expression.IndexOf(_op_key    ) != -1 => 0x23,
-            _                                            => _get_op_arg1(expression, _op_unknown),
-        };
+    private static bool _is_cjk(FhLangId language) {
+        return language is FhLangId.Chinese
+                        or FhLangId.Japanese
+                        or FhLangId.Korean;
     }
 
     /// <summary>
@@ -635,12 +670,9 @@ public static class FhEncoding {
         int src_offset, dest_offset;
 
         for (src_offset = 0, dest_offset = 0; src_offset < src.Length; ) {
-
             /* [fkelava 14/10/25 19:27]
              * Obtain the next complete UTF-8 code point in the input buffer.
-             * If it is U+000D (CR), U+000A (LF), or U+FEFF (BOM), bypass it.
              */
-
             OperationStatus decode_status = Rune.DecodeFromUtf8(src[ src_offset .. ], out Rune code_point, out int consumed);
 
             if (decode_status != OperationStatus.Done) {
@@ -648,20 +680,26 @@ public static class FhEncoding {
                 return dest_offset;
             }
 
-            if (_should_ignore_code_point(code_point)) {
+            if (_is_invalid(code_point)) {
                 src_offset += consumed;
                 continue;
             }
 
-            ReadOnlySpan<byte> bytes     = src[ src_offset .. (src_offset + consumed) ];
-            Span        <byte> dst_slice = flags.HasFlag(FhEncodingFlags.IGNORE_DEST_BUFFER) ? dest : dest[ dest_offset .. ];
+            /* [fkelava 16/07/26 13:10]
+             * When doing implicit CJK extension, we will have to rewrite `bytes` later with a `stackalloc` buffer.
+             * `bytes` is returnable, but a `stackalloc` buffer is not, so the compiler complains.
+             * We mark this span scoped so the compiler knows that such reassignment is valid and `bytes` is nonreturnable.
+             *
+             * See generally https://github.com/dotnet/csharplang/discussions/1130.
+             */
+            scoped ReadOnlySpan<byte> bytes     = src[ src_offset .. (src_offset + consumed) ];
+                   Span        <byte> dst_slice = flags.HasFlag(FhEncodingFlags.IGNORE_DEST_BUFFER) ? dest : dest[ dest_offset .. ];
 
             /* [fkelava 14/10/25 19:27]
              * If we have encountered a op statement opener (U+007B '{'), process the op by
              * consuming complete UTF-8 code points until a statement terminator (U+007D '}'),
              * then encoding the complete expression. The usual form is {CMD:ARG1:ARG2}.
              */
-
             if (code_point.Value == 0x007B && !flags.HasFlag(FhEncodingFlags.IGNORE_EXPRESSIONS)) { // '{' (U+007B) - dialogue op statement opener
                 // check for '{{' sequence - escape '{'
                 if (Rune.DecodeFromUtf8(src[ (src_offset + consumed) .. ], out code_point, out consumed) == OperationStatus.Done && code_point.Value == 0x007B) {
@@ -691,6 +729,12 @@ public static class FhEncoding {
              * If the character is NOT an op statement opener, find it in the Shift-JIS table and emit its index.
              */
         encode:
+            if (flags.HasFlag(FhEncodingFlags.IMPLICIT_CJK_EXTENSION) && _is_cjk(lang_id) && _extend_cjk(ref code_point)) {
+                Span<byte> extend_buf = stackalloc byte[code_point.Utf8SequenceLength];
+                code_point.EncodeToUtf8(extend_buf);
+                bytes = extend_buf;
+            }
+
             int index = sjistbl.IndexOf(bytes);
 
             if (index == -1) {

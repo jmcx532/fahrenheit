@@ -12,18 +12,12 @@ namespace Fahrenheit.Runtime;
 ///     In your module, override <see cref="FhModule.handle_input">.
 /// </summary>
 [FhLoad(FhGameId.FFX | FhGameId.FFX2 | FhGameId.FFX2LM)]
-public unsafe class FhCoreModule : FhModule {
+public unsafe class FhModListDisplayModule : FhModule {
 
-    private static readonly FhSettingsCategory _settings = new("fhr", [
-        new FhSettingToggle("display_mod_count", true),
-    ]);
-
-    public FhCoreModule() {
-        settings = _settings;
-    }
+    public FhModListDisplayModule() { }
 
     public override bool init(FhModContext mod_context, FileStream global_state_file) {
-        return FhCall.h_AtelExec_Internal_871D10.hook(this, handle_input);
+        return true;
     }
 
     public override void render_imgui() {
@@ -48,20 +42,5 @@ public unsafe class FhCoreModule : FhModule {
         ImGui.End();
 
         //ImGui.ShowDemoWindow();
-    }
-
-    /// <summary>
-    ///     Overrides the game's input handler to execute the
-    ///     <see cref="FhModule.handle_input"/> callback with the latest input state.
-    /// </summary>
-    [UnmanagedCallConv(CallConvs = [ typeof(CallConvStdcall) ] )]
-    private void h_update_input() {
-        FhApi.Input.update();
-
-        FhCall.h_AtelExec_Internal_871D10.chain_from(h_update_input).fnptr!();
-
-        foreach (FhModuleContext module_ctx in FhApi.Mods.get_modules()) {
-            module_ctx.Module.handle_input();
-        }
     }
 }

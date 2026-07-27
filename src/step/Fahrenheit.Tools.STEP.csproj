@@ -6,7 +6,7 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <RuntimeIdentifier>win-x86</RuntimeIdentifier>
+        <RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>
     </PropertyGroup>
 
     <!-- ASSEMBLY ADDITIONAL PROPERTIES -->
@@ -18,8 +18,8 @@
 
     <!-- PUBLISH SETTINGS -->
     <PropertyGroup>
-        <PublishSingleFile>true</PublishSingleFile>
-        <SelfContained>false</SelfContained>
+        <!-- STEP should not be part of 'deploy', hence unpublishable -->
+        <IsPublishable>false</IsPublishable>
     </PropertyGroup>
 
     <!-- SHARED FILE LINKS -->
@@ -29,21 +29,21 @@
 
     <!-- PROJECT REFERENCES -->
     <ItemGroup>
-        <ProjectReference Include="..\core\Fahrenheit.csproj">
-            <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-        </ProjectReference>
+        <ProjectReference Include="..\core\Fahrenheit.csproj" />
     </ItemGroup>
 
     <!-- PACKAGE REFERENCES -->
     <ItemGroup>
         <PackageReference Include="CsvHelper" Version="33.1.0" />
-        <PackageReference Include="System.CommandLine" Version="2.0.0-beta5.25306.1" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.6.0" />
+        <PackageReference Include="System.CommandLine" Version="2.0.10" />
     </ItemGroup>
 
+    <!-- ASSET PACKAGING -->
     <ItemGroup>
-        <None Update="fhstep.typemap.json">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
+        <None Include="data/*.ffx*.csv"  CopyToOutputDirectory="Always" />
+        <None Include="data/*.ffx*.json" CopyToOutputDirectory="Always" />
+        <None Include="data/*.ffx*.rsp"  CopyToOutputDirectory="Always" />
     </ItemGroup>
 
 </Project>

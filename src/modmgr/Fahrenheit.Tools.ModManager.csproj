@@ -6,8 +6,8 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <RuntimeIdentifier>win-x86</RuntimeIdentifier>
     </PropertyGroup>
 
     <!-- ASSEMBLY ADDITIONAL PROPERTIES -->
@@ -19,8 +19,8 @@
 
     <!-- PUBLISH SETTINGS -->
     <PropertyGroup>
-        <PublishSingleFile>true</PublishSingleFile>
         <SelfContained>false</SelfContained>
+        <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     </PropertyGroup>
 
     <!-- APPLICATION ASSETS -->
@@ -33,21 +33,17 @@
         <None Include="$(SolutionDir).editorconfig" Link=".editorconfig" />
     </ItemGroup>
 
-    <!-- EXTERNAL PROJECT REFS -->
+    <!-- PROJECT REFERENCES -->
     <ItemGroup>
-        <PackageReference Include="Hexa.NET.ImGui.Backends" Version="1.0.18">
-            <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-        </PackageReference>
-        <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.275">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
+        <ProjectReference Include="..\core\Fahrenheit.csproj" />
     </ItemGroup>
 
-    <!-- NATIVE SOURCE GENERATION FILES -->
+    <!-- EXTERNAL PROJECT REFS -->
     <ItemGroup>
-        <AdditionalFiles Include="native/NativeMethods.json" />
-        <AdditionalFiles Include="native/NativeMethods.txt" />
+        <PackageReference Include="Hexa.NET.ImGui.Backends" Version="1.0.18" />
+        <PackageReference Include="Hexa.NET.ImGui.Backends.SDL3" Version="1.0.18" />
+        <PackageReference Include="Hexa.NET.SDL3" Version="1.2.11" />
+        <PackageReference Include="Hexa.NET.OpenGL3" Version="1.1.0" />
     </ItemGroup>
 
 </Project>

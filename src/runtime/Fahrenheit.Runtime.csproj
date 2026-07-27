@@ -15,7 +15,7 @@
         <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <RuntimeIdentifier>win-x86</RuntimeIdentifier>
+        <RuntimeIdentifiers>win-x86</RuntimeIdentifiers>
         <EnableDynamicLoading>true</EnableDynamicLoading>
     </PropertyGroup>
 
@@ -49,8 +49,7 @@
 
     <!-- ASSETS: LOCALIZATION -->
     <ItemGroup>
-        <None Remove="lang/**" />
-        <None Include="lang/*.json" CopyToOutputDirectory="Always" />
+        <None Include="lang/**/*.json" CopyToOutputDirectory="Always" />
     </ItemGroup>
 
     <!-- ASSETS: EXTERNAL FILE LOADER -->
