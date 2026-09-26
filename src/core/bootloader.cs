@@ -3,6 +3,7 @@
 // This file is part of Fahrenheit, © 2023-2026 The Fahrenheit contributors.
 // It is licensed to you under the GNU Lesser General Public License, version 3.0 or later. See COPYING, COPYING.LESSER.
 
+
 namespace Fahrenheit;
 
 /// <summary>
@@ -15,6 +16,7 @@ internal static class FhEnvironment {
     internal static readonly string[]     LoadOrder;
     internal static readonly FhModPaths[] ModPaths;
     internal static readonly FhManifest[] Manifests;
+    internal static readonly bool         LargeAddressAware;
 
     static FhEnvironment() {
         /* [fkelava 10/06/26 18:53]
@@ -29,11 +31,12 @@ internal static class FhEnvironment {
 
         AppDomain.CurrentDomain.FirstChanceException += FhExceptionHandler.eh_first_chance;
 
-        Finder    = new();
-        BaseAddr  = NativeLibrary.GetMainProgramHandle();
-        LoadOrder = _init_load_order();
-        ModPaths  = _init_mod_paths();
-        Manifests = _init_manifests();
+        Finder            = new();
+        BaseAddr          = NativeLibrary.GetMainProgramHandle();
+        LoadOrder         = _init_load_order();
+        ModPaths          = _init_mod_paths();
+        Manifests         = _init_manifests();
+        LargeAddressAware = _init_laa();
     }
 
     /* [fkelava 25/4/24 18:47]
@@ -48,7 +51,7 @@ internal static class FhEnvironment {
         FhApi.Mods.initialize();
 
         // post-init - may require later editing
-        FhInternal.MethodTable.commit();
+        FhInternal.Methods.commit();
     }
 
     /// <summary>
@@ -93,6 +96,15 @@ internal static class FhEnvironment {
 
         return result;
     }
+
+    /// <summary>
+    ///     Probes whether the game binary has an extended, 4GB address space.
+    /// </summary>
+    private static bool _init_laa() {
+        IMAGE_FILE_HEADER image_header = FhUtil.get_at<IMAGE_FILE_HEADER>(0x15C);
+
+        return image_header.Characteristics.HasFlag(IMAGE_FILE_CHARACTERISTICS.IMAGE_FILE_LARGE_ADDRESS_AWARE);
+    }
 }
 
 /// <summary>
@@ -133,21 +145,20 @@ internal sealed class FhLoader {
     private readonly Dictionary<string, FhLoadContext> _load_contexts = [];
 
     internal FhLoader() {
-        // Loading the core library into ALC.Default ensures it does not 'leak' into plugins' load contexts, causing type identity mismatches.
-        Assembly self = AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.Join(FhEnvironment.Finder.Binaries.FullName, "fh.dll"));
+        // The core library is loaded into ALC.Default. This ensures it does not 'leak' into mods' load contexts, causing type identity mismatches.
+        string path_self = Path.Join(FhEnvironment.Finder.Binaries.FullName, "fh.dll");
 
         FhInternal.Log.LogDirect($"----");
-        FhInternal.Log.LogDirect($"Fahrenheit {FileVersionInfo.GetVersionInfo(self.Location).ProductVersion}");
+        FhInternal.Log.LogDirect($"Fahrenheit {FileVersionInfo.GetVersionInfo(path_self).ProductVersion}");
         FhInternal.Log.LogDirect($"OS: {RuntimeInformation.OSDescription} {RuntimeInformation.OSArchitecture}, target: {RuntimeInformation.RuntimeIdentifier}");
         FhInternal.Log.LogDirect($"----");
     }
 
-    /// <summary>
-    ///     Attempts to map a <see cref="AssemblyName"/> to an already loaded Fahrenheit DLL <see cref="Assembly"/>.
-    ///     <para/>
-    ///     This is because Fahrenheit mod DLLs are not permitted to bundle other mod DLLs they depend on;
-    ///     whichever version of the dependency the user actually has installed will be loaded instead.
-    /// </summary>
+    /// <summary>Retrieves an already loaded <see cref="Assembly"/> for a given <see cref="AssemblyName"/>, if one exists.</summary>
+    /// <remarks>
+    ///     Only one copy of a given Fahrenheit (core or mod) DLL may be loaded 
+    ///     in a given session, and is shared among all of its users.
+    /// </remarks>
     internal Assembly? get_shared_assembly(AssemblyName assembly_name) {
         if (!_load_contexts.TryGetValue(assembly_name.Name ?? "", out FhLoadContext? load_context)) return null;
 
@@ -178,7 +189,7 @@ internal sealed class FhLoader {
         _load_contexts[manifest.Id] = load_context;
 
         foreach (Type type in assembly.GetExportedTypes()) {
-            if (type.BaseType != typeof(FhModule)) continue;
+            if (!type.IsSubclassOf(typeof(FhModule))) continue;
 
             FhLoadAttribute? loader_args = type.GetCustomAttribute<FhLoadAttribute>();
 
@@ -216,8 +227,8 @@ internal sealed class FhLoader {
             yield return new FhModuleContext(module, module_paths);
         }
 
-        FhInternal.Log.Info($"--- load context dump for {manifest.Id} ---");
-        FhInternal.Log.Info($"  {string.Join("\n  ", load_context.Assemblies)}");
-        FhInternal.Log.Info($"---");
+        FhInternal.Log.LogDirect($"--- load context dump for {manifest.Id} ---");
+        FhInternal.Log.LogDirect($"  {string.Join("\n  ", load_context.Assemblies)}");
+        FhInternal.Log.LogDirect($"---");
     }
 }
