@@ -21,21 +21,6 @@ namespace Fahrenheit.FFX;
 /// </summary>
 public static partial class FhCall {
 
-    public static FhMethodHandle<Fahrenheit.FhCall.d_CT_Init> CT_0000_Init
-        => new( new FhMethodLocation("FFX.exe", 0x45C3E0) );
-
-    public static FhMethodHandle<Fahrenheit.FhCall.d_CT_RetInt> CT_0001_RetInt
-        => new( new FhMethodLocation("FFX.exe", 0x45CE70) );
-
-    public static FhMethodHandle<Fahrenheit.FhCall.d_CT_Init> CT_5010_Init
-        => new( new FhMethodLocation("FFX.exe", 0x679820) );
-
-    public static FhMethodHandle<Fahrenheit.FhCall.d_CT_RetInt> CT_5021_RetInt
-        => new( new FhMethodLocation("FFX.exe", 0x679510) );
-
-    public static FhMethodHandle<Fahrenheit.FhCall.d_CT_RetInt> CT_504C_RetInt
-        => new( new FhMethodLocation("FFX.exe", 0x6786A0) );
-
     [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
     public unsafe delegate void d_PhyreScene_doDeleteMeshInstances(uint ptr_this);
     public static FhMethodHandle<d_PhyreScene_doDeleteMeshInstances> PhyreScene_doDeleteMeshInstances
@@ -591,10 +576,10 @@ public static partial class FhCall {
     public static FhMethodHandle<d_getScenerioFlag> getScenerioFlag
         => new ( new FhMethodLocation("FFX.exe", 0x387420) );
 
-    public static FhMethodHandle<Fahrenheit.FhCall.d_CT_RetInt> CT_RetInt_0171_fillPartyMemberHp
+    public static FhMethodHandle<Fahrenheit.FhCall.d_CT_RetI> CT_RetInt_0171_fillPartyMemberHp
         => new ( new FhMethodLocation("FFX.exe", 0x45C4F0) );
 
-    public static FhMethodHandle<Fahrenheit.FhCall.d_CT_RetInt> CT_RetInt_0172_fillPartyMemberMp
+    public static FhMethodHandle<Fahrenheit.FhCall.d_CT_RetI> CT_RetInt_0172_fillPartyMemberMp
         => new ( new FhMethodLocation("FFX.exe", 0x45C6B0) );
 
     // Unofficial naming
@@ -761,9 +746,9 @@ public static partial class FhCall {
         => new( new FhMethodLocation("FFX.exe", 0x2DB1C0) );
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    internal delegate void d_FUN_2EFFF0();
-    internal static FhMethodHandle<d_FUN_2EFFF0> FUN_2EFFF0
-        => new( new FhMethodLocation("FFX.exe", 0x2EFFF0) );
+    internal delegate void d_FUN_2EFEB0();
+    internal static FhMethodHandle<d_FUN_2EFEB0> FUN_2EFEB0
+        => new( new FhMethodLocation("FFX.exe", 0x2EFEB0) );
 
     [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
     public delegate void d_FfxFmod_soundInit(nint ptr_this);
@@ -782,7 +767,7 @@ public static partial class FhCall {
 
     [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
     public delegate uint d_FUN_0070aec0(nint ptr_this, uint voice_id, uint arg3);
-    public static FhMethodHandle<d_FUN_0070aec0> FUN_0070aec0
+    public static FhMethodHandle<d_FUN_0070aec0> _FUN_0070aec0
         => new( new FhMethodLocation("FFX.exe", 0x30AEC0) );
 
     [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
@@ -1224,7 +1209,7 @@ public static partial class FhCall {
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate void d_AtelSetEventJump2(int room, int entrance, int do_fade);
     public static FhMethodHandle<d_AtelSetEventJump2> AtelSetEventJump2
-        => new( new FhMethodLocation("FFX.exe", 0x46FED0) );
+        => new( new FhMethodLocation("FFX.exe", 0x46FF40) );
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate void d_AtelEventSetUp(int event_id);
